@@ -1,0 +1,52 @@
+= Sifflet RunRule Plugin
+
+== Overview
+
+The Sifflet RunRule plugin allows you to execute Sifflet data quality rules from within your Kestra workflows.
+
+== Configuration
+
+[source,yaml]
+----
+tasks:
+  - id: run-sifflet-rule
+    type: io.kestra.plugin.templates.RunRule
+    apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+    ruleId: "your-rule-id"
+----
+
+== Properties
+
+[cols="1,1,4"]
+|===
+| Property | Type | Description
+| apiKey | String | Your Sifflet API key
+| ruleId | String | The ID of the rule to execute
+|===
+
+== Outputs
+
+The task returns the following outputs:
+
+[cols="1,4"]
+|===
+| Property | Description
+| status | The status of the rule execution
+| message | A message describing the result
+|===
+
+== Example
+
+Here's an example of how to use the RunRule task in a flow:
+
+[source,yaml]
+----
+id: sifflet-rule-flow
+namespace: io.kestra.plugin.templates
+
+tasks:
+  - id: run-rule
+    type: io.kestra.plugin.templates.RunRule
+    apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+    ruleId: "data-quality-rule-123"
+---- 
