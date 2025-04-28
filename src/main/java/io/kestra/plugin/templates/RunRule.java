@@ -8,6 +8,11 @@ import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,14 +44,33 @@ public class RunRule extends Task {
 
     @Override
     public Output run(RunContext runContext) throws Exception {
-        // TODO: Implement Sifflet API integration
-        // 1. Initialize Sifflet client with apiKey
-        // 2. Execute rule with ruleId
-        // 3. Return results
+        String apiUrl = "https://api.siffletdata.com/v1/rules/" + ruleId + "/execute";
         
-        Map<String, Object> outputs = new HashMap<>();
-        outputs.put("status", "success");
-        outputs.put("message", "Rule execution completed");
-        return Output.of(outputs);
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpPost request = new HttpPost(apiUrl);
+            
+            // Set headers
+            request.setHeader("Authorization", "Bearer " + apiKey);
+            request.setHeader("Content-Type", "application/json");
+            
+            // Set empty body for rule execution
+            request.setEntity(new StringEntity("{}", ContentType.APPLICATION_JSON));
+            
+            // Execute request
+            return client.execute(request, response -> {
+                int statusCode = response.getCode();
+                
+                if (statusCode >= 200 && statusCode < 300) {
+                    Map<String, Object> outputs = new HashMap<>();
+                    outputs.put("status", "success");
+                    outputs.put("message", "Rule executed successfully");
+                    return Output.of(outputs);
+                } else {
+                    throw new Exception("Failed to execute rule. Status code: " + statusCode);
+                }
+            });
+        } catch (Exception e) {
+            throw new Exception("Failed to execute Sifflet rule: " + e.getMessage(), e);
+        }
     }
 }
