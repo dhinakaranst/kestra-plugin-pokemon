@@ -1,0 +1,16 @@
+kestra:
+  server:
+    port: 8080
+  queue:
+    type: memory
+  repository:
+    type: h2
+    h2:
+      url: jdbc:h2:mem:kestra
+  storage:
+    type: local
+    local:
+      base-path: ./data
+  tasks:
+    defaults:
+      timeout: PT15M 

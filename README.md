@@ -33,6 +33,113 @@
 <p align="center" style="color:grey;"><i>Get started with Kestra in 4 minutes.</i></p>
 
 
+# Kestra Sifflet Plugin
+
+This plugin provides integration with Sifflet's data quality platform, allowing you to execute Sifflet rules from your Kestra workflows.
+
+## Features
+
+- Execute Sifflet rules and monitor their results
+- Seamless integration with Kestra's workflow engine
+- Secure API key management using Kestra secrets
+
+## Installation
+
+Add the plugin to your Kestra instance by adding the following dependency to your `plugins.yml`:
+
+```yaml
+plugins:
+  - name: kestra-plugin-sifflet
+    group: io.kestra.plugin
+    version: 1.0.0
+```
+
+## Tasks
+
+### RunRule
+
+The `RunRule` task allows you to execute a Sifflet rule and get its execution status.
+
+#### Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `apiKey` | String | Yes | Sifflet API key. Should be stored as a Kestra secret. |
+| `ruleId` | String | Yes | The ID of the Sifflet rule to execute. |
+
+#### Example
+
+```yaml
+id: run-sifflet-rule
+type: io.kestra.plugin.templates.RunRule
+apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+ruleId: "data-quality-rule-123"
+```
+
+#### Output
+
+The task returns an output with the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `status` | String | The execution status ("success" or "error") |
+| `message` | String | A descriptive message about the execution result |
+
+## Usage Examples
+
+### Basic Rule Execution
+
+```yaml
+id: run-sifflet-rule
+type: io.kestra.plugin.templates.RunRule
+apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+ruleId: "data-quality-rule-123"
+```
+
+### Error Handling
+
+The task will throw an `IllegalVariableEvaluationException` if:
+- The API key is invalid
+- The rule ID doesn't exist
+- The API request fails
+- The rule execution fails
+
+You can handle these errors in your flow:
+
+```yaml
+id: run-sifflet-rule
+type: io.kestra.plugin.templates.RunRule
+apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+ruleId: "data-quality-rule-123"
+error:
+  - type: io.kestra.core.exceptions.IllegalVariableEvaluationException
+    then:
+      - type: io.kestra.core.tasks.log.Log
+        message: "Failed to execute Sifflet rule: {{ error.message }}"
+```
+
+## Development
+
+### Building
+
+To build the plugin, run:
+
+```bash
+./gradlew shadowJar
+```
+
+### Testing
+
+To run the tests:
+
+```bash
+./gradlew test
+```
+
+## License
+
+This plugin is licensed under the Apache License 2.0.
+
 # Kestra Plugin Template
 
 > A template for creating Kestra plugins
@@ -63,10 +170,6 @@ go to http://localhost:8080, your plugin will be available to use
 ## Documentation
 * Full documentation can be found under: [kestra.io/docs](https://kestra.io/docs)
 * Documentation for developing a plugin is included in the [Plugin Developer Guide](https://kestra.io/docs/plugin-developer-guide/)
-
-
-## License
-Apache 2.0 © [Kestra Technologies](https://kestra.io)
 
 
 ## Stay up to date

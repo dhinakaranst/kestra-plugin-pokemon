@@ -1,4 +1,4 @@
-package io.kestra.plugin.templates;
+package io.kestra.plugin.sifflet;
 
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
@@ -7,8 +7,7 @@ import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
@@ -18,6 +17,8 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @SuperBuilder
 @NoArgsConstructor
@@ -30,23 +31,29 @@ import java.io.IOException;
             title = "Run a Sifflet rule",
             code = {
                 "id: run-rule",
-                "type: io.kestra.plugin.templates.RunRule",
-                "apiKey: \"{{ secret('SIFFLET_API_KEY') }}\"",
-                "ruleId: \"data-quality-rule-123\""
+                "type: io.kestra.plugin.sifflet.RunRule",
+                "apiKey: your-api-key",
+                "ruleId: your-rule-id"
             }
         )
     }
 )
 public class RunRule extends Task implements RunnableTask<RunRule.Output> {
     
+    @Schema(
+        title = "Sifflet API Key",
+        description = "The API key for authenticating with Sifflet"
+    )
     @PluginProperty(dynamic = true)
     @NotNull
-    @NotBlank
     private String apiKey;
 
+    @Schema(
+        title = "Rule ID",
+        description = "The ID of the rule to run"
+    )
     @PluginProperty(dynamic = true)
     @NotNull
-    @NotBlank
     private String ruleId;
 
     @Override
@@ -69,9 +76,12 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
                     int statusCode = response.getCode();
                     
                     if (statusCode >= 200 && statusCode < 300) {
+                        Map<String, Object> outputs = new HashMap<>();
+                        outputs.put("ruleId", ruleId);
+                        outputs.put("status", "success");
+                        
                         return Output.builder()
-                            .status("success")
-                            .message("Rule executed successfully")
+                            .outputs(outputs)
                             .build();
                     } else {
                         throw new IllegalStateException("Failed to execute rule. Status code: " + statusCode);
@@ -88,10 +98,9 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
-        @NotNull
-        private final String status;
-
-        @NotNull
-        private final String message;
+        @Schema(
+            title = "The outputs of the rule execution"
+        )
+        private final Map<String, Object> outputs;
     }
-}
+} 

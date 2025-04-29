@@ -10,28 +10,54 @@ plugins {
     id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
     id 'com.github.ben-manes.versions' version '0.52.0'
     id 'net.researchgate.release' version '3.1.0'
+    id 'com.google.cloud.tools.jib' version '3.4.0'
+    id 'application'
 }
 
 // If you want GitHub info, configure it properly
 github {
     user = 'kestra-io'
+    license = 'Apache-2.0'
     licenseName = 'Apache-2.0'
 }
 
+// Jib configuration for Docker
+jib {
+    from {
+        image = 'eclipse-temurin:21-jre'
+    }
+    to {
+        image = 'kestra-sifflet-plugin:latest'
+    }
+    container {
+        mainClass = 'io.kestra.cli.App'
+        args = ['server', 'standalone']
+    }
+}
 
 group = 'io.kestra.plugin'
 description = 'Plugin template for Kestra'
 version = '1.0.0-SNAPSHOT' // <-- set your plugin version here
 
-def kestraVersion = '0.17.0'  // <-- set the matching Kestra version here
+def kestraVersion = "0.22.4"
 def isBuildSnapshot = version.toString().endsWith("-SNAPSHOT")
 
+ext {
+    kestraVersion = "0.22.4"
+    lombokVersion = "1.18.30"
+    slf4jVersion = "2.0.9"
+    jacksonVersion = "2.15.3"
+}
+
 repositories {
-    mavenLocal()
     mavenCentral()
-    if (isBuildSnapshot) {
-        maven { url = "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
-    }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/releases/" }
+    maven { url "https://packages.confluent.io/maven/" }
+    maven { url "https://jitpack.io" }
+    maven { url "https://maven.scijava.org/content/repositories/public/" }
+    maven { url "https://repo.maven.apache.org/maven2/" }
+    maven { url "https://maven.pkg.github.com/kestra-io/kestra" }
 }
 
 final targetJavaVersion = JavaVersion.VERSION_21
@@ -49,67 +75,62 @@ tasks.withType(JavaCompile).configureEach {
 // ====================================================================================
 // Dependencies
 // ====================================================================================
+configurations {
+    agent
+}
+
 dependencies {
-    // Kestra Platform (core setup)
-    annotationProcessor enforcedPlatform("io.kestra:platform:$kestraVersion")
-    implementation enforcedPlatform("io.kestra:platform:$kestraVersion")
-    api enforcedPlatform("io.kestra:platform:$kestraVersion")
+    // Use Kestra BOM for version management
+    implementation platform("io.kestra:kestra-bom:${kestraVersion}")
+    testAnnotationProcessor platform("io.kestra:kestra-bom:${kestraVersion}")
+    testImplementation platform("io.kestra:kestra-bom:${kestraVersion}")
+    
+    // Core Kestra dependencies
+    implementation "io.kestra:core:${kestraVersion}"
+    implementation "io.kestra:cli:${kestraVersion}"
+    implementation "io.kestra:repository-memory:${kestraVersion}"
+    implementation "io.kestra:storage-local:${kestraVersion}"
+    implementation "io.kestra:runner-memory:${kestraVersion}"
 
     // Lombok
-    annotationProcessor 'org.projectlombok:lombok'
-    compileOnly 'org.projectlombok:lombok'
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
 
-    // Kestra Core
-    annotationProcessor "io.kestra:processor:$kestraVersion"
-    compileOnly "io.kestra:core:$kestraVersion"
-    compileOnly "io.kestra:script:$kestraVersion"
+    // Http Client
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.squareup.okhttp3:logging-interceptor:4.12.0"
 
-    // HTTP Client
-    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    // Swagger
+    implementation "io.swagger.core.v3:swagger-annotations:2.2.20"
 
-    // Sifflet API
-    implementation 'com.sifflet:sifflet-api:1.0.0' // TODO: Replace with actual Sifflet API dependency
+    // Testing
+    testImplementation "io.kestra:core:${kestraVersion}:test"
+    testImplementation "io.kestra:tests:${kestraVersion}"
+    testImplementation "io.kestra:script:${kestraVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.hamcrest:hamcrest:2.2"
+    testImplementation "org.hamcrest:hamcrest-core:2.2"
+    testImplementation "org.hamcrest:hamcrest-library"
 
-    // Test dependencies
-    testAnnotationProcessor enforcedPlatform("io.kestra:platform:$kestraVersion")
-    testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
-
-    testAnnotationProcessor 'org.projectlombok:lombok'
-    testCompileOnly 'org.projectlombok:lombok'
-
+    // Micronaut for testing
     testAnnotationProcessor "io.micronaut:micronaut-inject-java"
     testAnnotationProcessor "io.micronaut.validation:micronaut-validation-processor"
     testImplementation "io.micronaut.test:micronaut-test-junit5"
     testImplementation "io.micronaut:micronaut-jackson-databind"
 
-    testImplementation "io.kestra:core:$kestraVersion"
-    testImplementation "io.kestra:tests:$kestraVersion"
-    testImplementation "io.kestra:script:$kestraVersion"
-    testImplementation "io.kestra:repository-memory:$kestraVersion"
-    testImplementation "io.kestra:runner-memory:$kestraVersion"
-    testImplementation "io.kestra:storage-local:$kestraVersion"
-
-    testImplementation "org.junit.jupiter:junit-jupiter-engine"
-    testImplementation "org.hamcrest:hamcrest"
-    testImplementation "org.hamcrest:hamcrest-library"
-
     // Allure reports for test reporting
     testImplementation "io.qameta.allure:allure-junit5"
 
     // AspectJ Agent
-testImplementation "org.aspectj:aspectjweaver:1.9.23"
+    agent "org.aspectj:aspectjweaver:1.9.23"
 }
 
 // ====================================================================================
 // Test Config
 // ====================================================================================
-configurations {
-    agent {
-        canBeResolved = true
-        canBeConsumed = true
-    }
-}
-
 test {
     useJUnitPlatform()
     jvmArgs = ["-javaagent:${configurations.agent.singleFile}"]
@@ -208,4 +229,14 @@ idea {
         downloadJavadoc = true
         downloadSources = true
     }
+}
+
+// Application configuration
+application {
+    mainClass = 'io.kestra.cli.App'
+}
+
+// Run configuration
+run {
+    args = ['server', 'standalone']
 }
