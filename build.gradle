@@ -14,14 +14,12 @@ plugins {
     id 'application'
 }
 
-// If you want GitHub info, configure it properly
 github {
     user = 'kestra-io'
     license = 'Apache-2.0'
     licenseName = 'Apache-2.0'
 }
 
-// Jib configuration for Docker
 jib {
     from {
         image = 'eclipse-temurin:21-jre'
@@ -37,7 +35,7 @@ jib {
 
 group = 'io.kestra.plugin'
 description = 'Plugin template for Kestra'
-version = '1.0.0-SNAPSHOT' // <-- set your plugin version here
+version = '1.0.0-SNAPSHOT'
 
 def kestraVersion = "0.22.4"
 def isBuildSnapshot = version.toString().endsWith("-SNAPSHOT")
@@ -72,9 +70,6 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add('-parameters')
 }
 
-// ====================================================================================
-// Dependencies
-// ====================================================================================
 configurations {
     agent
 }
@@ -84,7 +79,7 @@ dependencies {
     implementation platform("io.kestra:kestra-bom:${kestraVersion}")
     testAnnotationProcessor platform("io.kestra:kestra-bom:${kestraVersion}")
     testImplementation platform("io.kestra:kestra-bom:${kestraVersion}")
-    
+
     // Core Kestra dependencies
     implementation "io.kestra:core:${kestraVersion}"
     implementation "io.kestra:cli:${kestraVersion}"
@@ -124,13 +119,10 @@ dependencies {
     // Allure reports for test reporting
     testImplementation "io.qameta.allure:allure-junit5"
 
-    // AspectJ Agent
-    agent "org.aspectj:aspectjweaver:1.9.23"
+    // ✅ AspectJ Agent
+    agent "org.aspectj:aspectjweaver:1.9.24"
 }
 
-// ====================================================================================
-// Test Config
-// ====================================================================================
 test {
     useJUnitPlatform()
     jvmArgs = ["-javaagent:${configurations.agent.singleFile}"]
@@ -146,16 +138,10 @@ testlogger {
     showSkippedStandardStreams = true
 }
 
-// ====================================================================================
-// Jacoco
-// ====================================================================================
 jacocoTestReport {
     dependsOn test
 }
 
-// ====================================================================================
-// Nexus Publish (sonatype / OSS publishing)
-// ====================================================================================
 nexusPublishing {
     repositoryDescription = "${project.group}:${rootProject.name}:${project.version}"
     useStaging = !isBuildSnapshot
@@ -167,9 +153,6 @@ nexusPublishing {
     }
 }
 
-// ====================================================================================
-// Maven Publish
-// ====================================================================================
 tasks.withType(GenerateModuleMetadata).configureEach {
     suppressedValidationErrors.add('enforced-platform')
 }
@@ -183,17 +166,11 @@ maven.pom {
     }
 }
 
-// ====================================================================================
-// Shadow JAR
-// ====================================================================================
 shadowJar {
     archiveClassifier.set(null)
     mergeServiceFiles()
 }
 
-// ====================================================================================
-// JAR Manifest
-// ====================================================================================
 jar {
     manifest {
         attributes(
@@ -206,9 +183,6 @@ jar {
     }
 }
 
-// ====================================================================================
-// Release Plugin
-// ====================================================================================
 release {
     preCommitText = 'chore(version):'
     preTagCommitMessage = 'update to version'
@@ -221,9 +195,6 @@ release {
     }
 }
 
-// ====================================================================================
-// IDEA Plugin
-// ====================================================================================
 idea {
     module {
         downloadJavadoc = true
@@ -231,12 +202,10 @@ idea {
     }
 }
 
-// Application configuration
 application {
     mainClass = 'io.kestra.cli.App'
 }
 
-// Run configuration
 run {
     args = ['server', 'standalone']
 }
