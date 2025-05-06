@@ -166,6 +166,7 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
         if (pollingException != null) {
             throw new RuntimeException("Polling failed: " + pollingException.getMessage(), pollingException);
         }
+        runContext.metric(Counter.of("rule.status", 1, "status", status));
         return Output.builder()
             .executionId(executionId)
             .status(status)
