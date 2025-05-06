@@ -200,4 +200,3 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
         private String status;
     }
 } 
-} 
