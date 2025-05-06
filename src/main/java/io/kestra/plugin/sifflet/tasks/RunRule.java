@@ -82,7 +82,7 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
     )
     @PluginProperty(dynamic = true)
     @Builder.Default
-    private Integer timeout = 3600;
+    private Integer ruleTimeout = 3600;
 
     @Override
     public RunRule.Output run(RunContext runContext) throws Exception {
@@ -124,13 +124,13 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
         }
 
         long startTime = System.currentTimeMillis();
-        long timeoutMillis = timeout * 1000L;
+        long timeoutMillis = ruleTimeout * 1000L;
         boolean completed = false;
         String status = null;
         Exception pollingException = null;
         while (!completed) {
             if (System.currentTimeMillis() - startTime > timeoutMillis) {
-                throw new RuntimeException("Rule execution timed out after " + timeout + " seconds");
+                throw new RuntimeException("Rule execution timed out after " + ruleTimeout + " seconds");
             }
             try {
                 Thread.sleep(pollingInterval * 1000L);

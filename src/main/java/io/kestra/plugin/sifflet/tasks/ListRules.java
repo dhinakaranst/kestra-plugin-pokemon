@@ -77,7 +77,7 @@ public class ListRules extends Task implements RunnableTask<ListRules.Output> {
     private Integer pageNumber = 1;
 
     @Override
-    public ListRules.Output run(RunContext runContext) {
+    public ListRules.Output run(RunContext runContext) throws Exception {
         String resolvedUrl = runContext.render(url);
         String resolvedApiKey = runContext.render(apiKey);
         Integer resolvedPageSize = pageSize != null ? pageSize : 100;
