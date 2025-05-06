@@ -1,0 +1,8 @@
+id: sifflet-test
+namespace: io.kestra.plugin.templates
+
+tasks:
+  - id: run-sifflet-rule
+    type: io.kestra.plugin.templates.RunRule
+    apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+    ruleId: "your-rule-id-here" 

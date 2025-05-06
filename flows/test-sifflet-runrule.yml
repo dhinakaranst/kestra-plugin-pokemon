@@ -1,0 +1,12 @@
+id: test-sifflet-runrule
+namespace: dev
+
+tasks:
+  - id: run-sifflet-rule
+    type: io.kestra.plugin.sifflet.RunRule
+    url: "https://your-sifflet-instance.com"
+    apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+    ruleId: "your-rule-id"
+    parameters:
+      param1: "value1"
+      param2: "value2" 

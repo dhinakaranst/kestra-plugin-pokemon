@@ -1,25 +1,61 @@
 plugins {
     id 'java-library'
-    id "idea"
+    id 'idea'
     id 'jacoco'
-    id "com.adarshr.test-logger" version "4.0.0"
-    id "com.gradleup.shadow" version "8.3.6"
+    id 'signing'
+    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.adarshr.test-logger' version '4.0.0'
     id 'ru.vyarus.java-lib' version '3.0.0'
     id 'ru.vyarus.github-info' version '2.0.0'
-    id 'signing'
-    id "io.github.gradle-nexus.publish-plugin" version "2.0.0"
-    id "com.github.ben-manes.versions" version "0.52.0"
+    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
+    id 'com.github.ben-manes.versions' version '0.52.0'
     id 'net.researchgate.release' version '3.1.0'
+    id 'com.google.cloud.tools.jib' version '3.4.0'
+    id 'application'
 }
 
+github {
+    user = 'kestra-io'
+    license = 'Apache-2.0'
+    licenseName = 'Apache-2.0'
+}
+
+jib {
+    from {
+        image = 'eclipse-temurin:21-jre'
+    }
+    to {
+        image = 'kestra-sifflet-plugin:latest'
+    }
+    container {
+        mainClass = 'io.kestra.cli.App'
+        args = ['server', 'standalone']
+    }
+}
+
+group = 'io.kestra.plugin'
+description = 'Plugin template for Kestra'
+version = '1.0.0-SNAPSHOT'
+
+def kestraVersion = "0.22.4"
 def isBuildSnapshot = version.toString().endsWith("-SNAPSHOT")
 
+ext {
+    kestraVersion = "0.22.4"
+    lombokVersion = "1.18.30"
+    slf4jVersion = "2.0.9"
+    jacksonVersion = "2.15.3"
+}
+
 repositories {
-    mavenLocal()
     mavenCentral()
-    if (isBuildSnapshot) {
-        maven { url = "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
-    }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/releases/" }
+    maven { url "https://packages.confluent.io/maven/" }
+    maven { url "https://jitpack.io" }
+    maven { url "https://maven.scijava.org/content/repositories/public/" }
+    maven { url "https://repo.maven.apache.org/maven2/" }
+    maven { url "https://maven.pkg.github.com/kestra-io/kestra" }
 }
 
 final targetJavaVersion = JavaVersion.VERSION_21
@@ -29,13 +65,20 @@ java {
     targetCompatibility = targetJavaVersion
 }
 
+feature/sifflet-runrule
+
 group = "io.kestra.plugin"
 description = 'Sifflet plugin for Kestra'
 
+ master
 tasks.withType(JavaCompile).configureEach {
-    options.encoding = "UTF-8"
-    options.compilerArgs.add("-parameters")
+    options.encoding = 'UTF-8'
+    options.compilerArgs.add('-parameters')
 }
+
+ feature/sifflet-runrule
+configurations {
+    agent
 
 dependencies {
     // Platform
@@ -72,22 +115,53 @@ testlogger {
     showStandardStreams = true
     showPassedStandardStreams = false
     showSkippedStandardStreams = true
+master
 }
 
 dependencies {
-    // Platform
-    testAnnotationProcessor enforcedPlatform("io.kestra:platform:$kestraVersion")
-    testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+    // Use Kestra BOM for version management
+    implementation platform("io.kestra:kestra-bom:${kestraVersion}")
+    testAnnotationProcessor platform("io.kestra:kestra-bom:${kestraVersion}")
+    testImplementation platform("io.kestra:kestra-bom:${kestraVersion}")
 
-    // lombok
-    testAnnotationProcessor "org.projectlombok:lombok"
-    testCompileOnly 'org.projectlombok:lombok'
+    // Core Kestra dependencies
+    implementation "io.kestra:core:${kestraVersion}"
+    implementation "io.kestra:cli:${kestraVersion}"
+    implementation "io.kestra:repository-memory:${kestraVersion}"
+    implementation "io.kestra:storage-local:${kestraVersion}"
+    implementation "io.kestra:runner-memory:${kestraVersion}"
 
-    // micronaut
+    // Lombok
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+
+    // Http Client
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.squareup.okhttp3:logging-interceptor:4.12.0"
+
+    // Swagger
+    implementation "io.swagger.core.v3:swagger-annotations:2.2.20"
+
+    // Testing
+    testImplementation "io.kestra:core:${kestraVersion}:test"
+    testImplementation "io.kestra:tests:${kestraVersion}"
+    testImplementation "io.kestra:script:${kestraVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.hamcrest:hamcrest:2.2"
+    testImplementation "org.hamcrest:hamcrest-core:2.2"
+    testImplementation "org.hamcrest:hamcrest-library"
+
+    // Micronaut for testing
     testAnnotationProcessor "io.micronaut:micronaut-inject-java"
     testAnnotationProcessor "io.micronaut.validation:micronaut-validation-processor"
     testImplementation "io.micronaut.test:micronaut-test-junit5"
     testImplementation "io.micronaut:micronaut-jackson-databind"
+
+ feature/sifflet-runrule
+    // Allure reports for test reporting
 
     // test deps needed only for to have a runner
     testAnnotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
@@ -112,53 +186,52 @@ dependencies {
  **********************************************************************************************************************/
 dependencies {
     testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+ master
     testImplementation "io.qameta.allure:allure-junit5"
-}
 
-configurations {
-    agent {
-        canBeResolved = true
-        canBeConsumed = true
-    }
-}
+ feature/sifflet-runrule
+    // ✅ AspectJ Agent
 
 dependencies {
+ master
     agent "org.aspectj:aspectjweaver:1.9.24"
 }
 
 test {
-    jvmArgs = [ "-javaagent:${configurations.agent.singleFile}" ]
+    useJUnitPlatform()
+    jvmArgs = ["-javaagent:${configurations.agent.singleFile}"]
+    finalizedBy jacocoTestReport
 }
 
-/**********************************************************************************************************************\
- * Jacoco
- **********************************************************************************************************************/
-test {
-    finalizedBy jacocoTestReport
+testlogger {
+    theme = 'mocha-parallel'
+    showExceptions = true
+    showFullStackTraces = true
+    showStandardStreams = true
+    showPassedStandardStreams = false
+    showSkippedStandardStreams = true
 }
 
 jacocoTestReport {
     dependsOn test
 }
 
-/**********************************************************************************************************************\
- * Publish
- **********************************************************************************************************************/
 nexusPublishing {
     repositoryDescription = "${project.group}:${rootProject.name}:${project.version}"
     useStaging = !isBuildSnapshot
     repositories {
         sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            nexusUrl.set(uri('https://s01.oss.sonatype.org/service/local/'))
+            snapshotRepositoryUrl.set(uri('https://s01.oss.sonatype.org/content/repositories/snapshots/'))
         }
     }
 }
 
 tasks.withType(GenerateModuleMetadata).configureEach {
-    // Suppression this validation error as we want to enforce the Kestra platform
     suppressedValidationErrors.add('enforced-platform')
 }
+
+ feature/sifflet-runrule
 
 jar {
     manifest {
@@ -172,11 +245,12 @@ jar {
     }
 }
 
+
 maven.pom {
     developers {
         developer {
-            id = "tchiotludo"
-            name = "Ludovic Dehon"
+            id = 'tchiotludo'
+            name = 'Ludovic Dehon'
         }
     }
 }
@@ -186,14 +260,18 @@ shadowJar {
     mergeServiceFiles()
 }
 
-github {
-    user = 'kestra-io'
-    license = 'Apache'
+jar {
+    manifest {
+        attributes(
+                'X-Kestra-Name': project.name,
+                'X-Kestra-Title': 'Template',
+                'X-Kestra-Group': "${project.group}.templates",
+                'X-Kestra-Description': project.description,
+                'X-Kestra-Version': project.version
+        )
+    }
 }
 
-/**********************************************************************************************************************\
- * Version
- **********************************************************************************************************************/
 release {
     preCommitText = 'chore(version):'
     preTagCommitMessage = 'update to version'
@@ -206,12 +284,17 @@ release {
     }
 }
 
-/**********************************************************************************************************************\
- * Dev
- **********************************************************************************************************************/
 idea {
     module {
         downloadJavadoc = true
         downloadSources = true
     }
+}
+
+application {
+    mainClass = 'io.kestra.cli.App'
+}
+
+run {
+    args = ['server', 'standalone']
 }

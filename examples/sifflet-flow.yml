@@ -1,0 +1,8 @@
+id: sifflet-flow
+namespace: io.kestra.plugin.sifflet
+
+tasks:
+  - id: run-rule
+    type: io.kestra.plugin.sifflet.RunRule
+    apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+    ruleId: "data-quality-rule-123" 
