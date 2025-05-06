@@ -57,7 +57,7 @@ public class ListRules extends Task implements RunnableTask<ListRules.Output> {
         title = "API Key",
         description = "The API key for authentication with Sifflet"
     )
-    @PluginProperty(dynamic = true, sensitive = true)
+    @PluginProperty(dynamic = true)
     private String apiKey;
 
     @Schema(
