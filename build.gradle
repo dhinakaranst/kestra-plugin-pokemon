@@ -65,13 +65,57 @@ java {
     targetCompatibility = targetJavaVersion
 }
 
+feature/sifflet-runrule
+
+group = "io.kestra.plugin"
+description = 'Sifflet plugin for Kestra'
+
+ master
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs.add('-parameters')
 }
 
+ feature/sifflet-runrule
 configurations {
     agent
+
+dependencies {
+    // Platform
+    annotationProcessor enforcedPlatform("io.kestra:platform:$kestraVersion")
+    implementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+    api enforcedPlatform("io.kestra:platform:$kestraVersion")
+
+    // lombok
+    annotationProcessor "org.projectlombok:lombok"
+    compileOnly "org.projectlombok:lombok"
+
+    // kestra
+    annotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+    compileOnly group: "io.kestra", name: "core", version: kestraVersion
+    compileOnly group: "io.kestra", name: "script", version: kestraVersion
+
+    // jackson for JSON parsing
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+}
+
+
+/**********************************************************************************************************************\
+ * Test
+ **********************************************************************************************************************/
+test {
+    useJUnitPlatform()
+}
+
+testlogger {
+    theme = "mocha-parallel"
+    showExceptions = true
+    showFullStackTraces = true
+    showStandardStreams = true
+    showPassedStandardStreams = false
+    showSkippedStandardStreams = true
+master
 }
 
 dependencies {
@@ -116,10 +160,40 @@ dependencies {
     testImplementation "io.micronaut.test:micronaut-test-junit5"
     testImplementation "io.micronaut:micronaut-jackson-databind"
 
+ feature/sifflet-runrule
     // Allure reports for test reporting
+
+    // test deps needed only for to have a runner
+    testAnnotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
+    testImplementation group: "io.kestra", name: "core", version: kestraVersion
+    testImplementation group: "io.kestra", name: "tests", version: kestraVersion
+    testImplementation group: "io.kestra", name: "script", version: kestraVersion
+    testImplementation group: "io.kestra", name: "repository-memory", version: kestraVersion
+    testImplementation group: "io.kestra", name: "runner-memory", version: kestraVersion
+    testImplementation group: "io.kestra", name: "storage-local", version: kestraVersion
+
+    // test
+    testImplementation "org.junit.jupiter:junit-jupiter-engine"
+    testImplementation "org.hamcrest:hamcrest"
+    testImplementation "org.hamcrest:hamcrest-library"
+    
+    // MockWebServer for testing HTTP calls
+    testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0"
+}
+
+/**********************************************************************************************************************\
+ * Allure Reports
+ **********************************************************************************************************************/
+dependencies {
+    testImplementation enforcedPlatform("io.kestra:platform:$kestraVersion")
+ master
     testImplementation "io.qameta.allure:allure-junit5"
 
+ feature/sifflet-runrule
     // ✅ AspectJ Agent
+
+dependencies {
+ master
     agent "org.aspectj:aspectjweaver:1.9.24"
 }
 
@@ -156,6 +230,21 @@ nexusPublishing {
 tasks.withType(GenerateModuleMetadata).configureEach {
     suppressedValidationErrors.add('enforced-platform')
 }
+
+ feature/sifflet-runrule
+
+jar {
+    manifest {
+        attributes(
+                "X-Kestra-Name": project.name,
+                "X-Kestra-Title": "Sifflet",
+                "X-Kestra-Group": project.group + ".sifflet",
+                "X-Kestra-Description": "Sifflet plugin for Kestra",
+                "X-Kestra-Version": project.version
+        )
+    }
+}
+
 
 maven.pom {
     developers {

@@ -177,3 +177,144 @@ go to http://localhost:8080, your plugin will be available to use
 We release new versions every month. Give the [main repository](https://github.com/kestra-io/kestra) a star to stay up to date with the latest releases and get notified about future updates.
 
 ![Star the repo](https://kestra.io/star.gif)
+
+# Sifflet Plugin for Kestra
+
+This plugin provides integration with Sifflet's data quality platform, allowing you to run data quality rules from your Kestra workflows.
+
+## Installation
+
+Add the plugin to your Kestra installation by adding the following to your `kestra.yml`:
+
+```yaml
+plugins:
+  - io.kestra.plugin:sifflet:0.1.0
+```
+
+## Tasks
+
+### RunRule
+
+The `RunRule` task allows you to execute a Sifflet rule and wait for its completion.
+
+#### Example
+
+```yaml
+id: run-sifflet-rule
+type: io.kestra.plugin.sifflet.tasks.RunRule
+url: https://api.siffletdata.com
+apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+ruleId: "rule-123"
+```
+
+#### Properties
+
+| Property        | Type    | Description                                    | Required | Default |
+|-----------------|---------|------------------------------------------------|----------|---------|
+| url             | string  | The base URL for Sifflet API                   | Yes      | -       |
+| apiKey          | string  | Your Sifflet API key                           | Yes      | -       |
+| ruleId          | string  | The ID of the rule to run                      | Yes      | -       |
+| pollingInterval | integer | Seconds between status checks                  | No       | 5       |
+| timeout         | integer | Maximum seconds to wait for completion         | No       | 3600    |
+
+#### Outputs
+
+| Property     | Type   | Description                    |
+|--------------|--------|--------------------------------|
+| executionId  | string | The ID of the rule execution   |
+| status       | string | The final status of execution  |
+
+### ListRules
+
+The `ListRules` task allows you to retrieve a list of rules from Sifflet.
+
+#### Example
+
+```yaml
+id: list-sifflet-rules
+type: io.kestra.plugin.sifflet.tasks.ListRules
+url: https://api.siffletdata.com
+apiKey: "{{ secret('SIFFLET_API_KEY') }}"
+pageSize: 100
+pageNumber: 1
+```
+
+#### Properties
+
+| Property   | Type    | Description                                    | Required | Default |
+|------------|---------|------------------------------------------------|----------|---------|
+| url        | string  | The base URL for Sifflet API                   | Yes      | -       |
+| apiKey     | string  | Your Sifflet API key                           | Yes      | -       |
+| pageSize   | integer | Number of rules to return per page             | No       | 100     |
+| pageNumber | integer | Page number to retrieve                        | No       | 1       |
+
+#### Outputs
+
+| Property    | Type                | Description                    |
+|-------------|---------------------|--------------------------------|
+| rules       | List<Rule>          | List of rules                  |
+| totalCount  | integer             | Total number of rules          |
+| pageSize    | integer             | Number of rules per page       |
+| pageNumber  | integer             | Current page number            |
+
+#### Rule Object
+
+| Property    | Type   | Description                    |
+|-------------|--------|--------------------------------|
+| id          | string | Rule ID                        |
+| name        | string | Rule name                      |
+| description | string | Rule description               |
+| status      | string | Rule status                    |
+| createdAt   | string | Creation timestamp             |
+| updatedAt   | string | Last update timestamp          |
+
+## Error Handling
+
+The tasks handle various error scenarios:
+
+1. **API Authentication Errors**
+   - HTTP 401 responses
+   - Invalid API keys
+   - Solution: Verify your API key is correct and has proper permissions
+
+2. **Rule Execution Errors**
+   - Invalid rule IDs
+   - Rule execution failures
+   - Solution: Check the rule ID and ensure the rule is properly configured in Sifflet
+
+3. **Timeout Errors**
+   - Rule execution takes longer than the specified timeout
+   - Solution: Increase the timeout value or investigate why the rule is taking longer than expected
+
+4. **JSON Parsing Errors**
+   - Invalid response format from Sifflet API
+   - Solution: Contact Sifflet support if this occurs
+
+## Best Practices
+
+1. **API Key Security**
+   - Always use Kestra secrets to store your Sifflet API key
+   - Never hardcode API keys in your workflows
+   - Rotate API keys regularly
+
+2. **Timeout Configuration**
+   - Set appropriate timeout values based on your rule complexity
+   - Consider using longer timeouts for complex rules
+   - Monitor execution times to optimize timeout settings
+
+3. **Error Handling**
+   - Implement proper error handling in your workflows
+   - Use Kestra's error handling features to manage failures
+   - Monitor failed executions and investigate root causes
+
+## Development
+
+To build the plugin:
+
+```bash
+./gradlew build
+```
+
+## License
+
+Apache 2.0
