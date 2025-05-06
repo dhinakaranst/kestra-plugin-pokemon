@@ -77,25 +77,45 @@ public class ListRules extends Task implements RunnableTask<ListRules.Output> {
     private Integer pageNumber = 1;
 
     @Override
-    public ListRules.Output run(RunContext runContext) throws Exception {
+    public ListRules.Output run(RunContext runContext) {
         String resolvedUrl = runContext.render(url);
         String resolvedApiKey = runContext.render(apiKey);
+        Integer resolvedPageSize = pageSize != null ? pageSize : 100;
+        Integer resolvedPageNumber = pageNumber != null ? pageNumber : 1;
+
+        if (resolvedUrl == null || resolvedUrl.isEmpty()) {
+            throw new IllegalArgumentException("Sifflet API URL must be provided");
+        }
+        if (resolvedApiKey == null || resolvedApiKey.isEmpty()) {
+            throw new IllegalArgumentException("Sifflet API key must be provided");
+        }
 
         HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .build();
 
+        String uri = String.format("%s/api/v1/rules?pageSize=%s&pageNumber=%s",
+            resolvedUrl,
+            java.net.URLEncoder.encode(resolvedPageSize.toString(), java.nio.charset.StandardCharsets.UTF_8),
+            java.net.URLEncoder.encode(resolvedPageNumber.toString(), java.nio.charset.StandardCharsets.UTF_8)
+        );
+
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(resolvedUrl + "/api/v1/rules?pageSize=" + pageSize + "&pageNumber=" + pageNumber))
+            .uri(URI.create(uri))
             .header("Authorization", "Bearer " + resolvedApiKey)
             .header("Content-Type", "application/json")
             .GET()
             .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        
+        HttpResponse<String> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send request to Sifflet API: " + e.getMessage(), e);
+        }
+
         if (response.statusCode() != 200) {
-            throw new Exception("Failed to list rules: " + response.body());
+            throw new RuntimeException("Failed to list rules: " + response.body());
         }
 
         try {
@@ -107,7 +127,7 @@ public class ListRules extends Task implements RunnableTask<ListRules.Output> {
                 .pageNumber(rulesResponse.pageNumber)
                 .build();
         } catch (Exception e) {
-            throw new Exception("Failed to parse rules response: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to parse rules response: " + e.getMessage(), e);
         }
     }
 

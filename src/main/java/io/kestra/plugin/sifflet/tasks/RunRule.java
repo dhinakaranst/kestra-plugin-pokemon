@@ -90,74 +90,82 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
         String resolvedApiKey = runContext.render(apiKey);
         String resolvedRuleId = runContext.render(ruleId);
 
+        if (resolvedUrl == null || resolvedUrl.isEmpty()) {
+            throw new IllegalArgumentException("Sifflet API URL must be provided");
+        }
+        if (resolvedApiKey == null || resolvedApiKey.isEmpty()) {
+            throw new IllegalArgumentException("Sifflet API key must be provided");
+        }
+        if (resolvedRuleId == null || resolvedRuleId.isEmpty()) {
+            throw new IllegalArgumentException("Sifflet ruleId must be provided");
+        }
+
         HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .build();
 
-        // Start the rule execution
-        HttpRequest startRequest = HttpRequest.newBuilder()
+        HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(resolvedUrl + "/api/v1/rules/" + resolvedRuleId + "/run"))
             .header("Authorization", "Bearer " + resolvedApiKey)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.noBody())
             .build();
 
-        HttpResponse<String> startResponse = client.send(startRequest, HttpResponse.BodyHandlers.ofString());
-        
-        if (startResponse.statusCode() != 200) {
-            throw new Exception("Failed to start rule execution: " + startResponse.body());
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Failed to start rule execution: " + response.body());
         }
 
-        // Parse the execution ID from the response
-        ExecutionResponse executionResponse;
+        String executionId;
         try {
-            executionResponse = MAPPER.readValue(startResponse.body(), ExecutionResponse.class);
+            executionId = MAPPER.readTree(response.body()).get("executionId").asText();
         } catch (Exception e) {
-            throw new Exception("Failed to parse response: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to parse response: " + e.getMessage(), e);
         }
-        String executionId = executionResponse.executionId;
 
-        // Poll for completion
-        boolean completed = false;
-        String status = "";
         long startTime = System.currentTimeMillis();
         long timeoutMillis = timeout * 1000L;
-
+        boolean completed = false;
+        String status = null;
+        Exception pollingException = null;
         while (!completed) {
             if (System.currentTimeMillis() - startTime > timeoutMillis) {
-                throw new Exception("Rule execution timed out after " + timeout + " seconds");
+                throw new RuntimeException("Rule execution timed out after " + timeout + " seconds");
             }
-
+            try {
+                Thread.sleep(pollingInterval * 1000L);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Polling interrupted while waiting for rule execution", ie);
+            }
             HttpRequest statusRequest = HttpRequest.newBuilder()
-                .uri(URI.create(resolvedUrl + "/api/v1/executions/" + executionId))
+                .uri(URI.create(resolvedUrl + "/api/v1/rules/executions/" + executionId + "/status"))
                 .header("Authorization", "Bearer " + resolvedApiKey)
+                .header("Content-Type", "application/json")
                 .GET()
                 .build();
-
-            HttpResponse<String> statusResponse = client.send(statusRequest, HttpResponse.BodyHandlers.ofString());
-            
-            if (statusResponse.statusCode() != 200) {
-                throw new Exception("Failed to get execution status: " + statusResponse.body());
-            }
-
-            ExecutionStatus executionStatus;
+            HttpResponse<String> statusResponse;
             try {
-                executionStatus = MAPPER.readValue(statusResponse.body(), ExecutionStatus.class);
+                statusResponse = client.send(statusRequest, HttpResponse.BodyHandlers.ofString());
             } catch (Exception e) {
-                throw new Exception("Failed to parse status response: " + e.getMessage(), e);
+                pollingException = e;
+                break;
             }
-            status = executionStatus.status;
-            
-            if (status.equals("COMPLETED") || status.equals("FAILED")) {
+            if (statusResponse.statusCode() != 200) {
+                throw new RuntimeException("Failed to check rule execution status: " + statusResponse.body());
+            }
+            try {
+                status = MAPPER.readTree(statusResponse.body()).get("status").asText();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to parse response: " + e.getMessage(), e);
+            }
+            if ("COMPLETED".equals(status) || "FAILED".equals(status)) {
                 completed = true;
-            } else {
-                Thread.sleep(pollingInterval * 1000L);
             }
         }
-
-        // Record metrics
-        runContext.metric(Counter.of("rule.status", 1, "status", status));
-
+        if (pollingException != null) {
+            throw new RuntimeException("Polling failed: " + pollingException.getMessage(), pollingException);
+        }
         return Output.builder()
             .executionId(executionId)
             .status(status)
@@ -191,4 +199,5 @@ public class RunRule extends Task implements RunnableTask<RunRule.Output> {
     private static class ExecutionStatus {
         private String status;
     }
+} 
 } 

@@ -121,4 +121,39 @@ class ListRulesTest {
         Exception exception = assertThrows(Exception.class, () -> task.run(runContext));
         assertThat(exception.getMessage(), containsString("Failed to parse rules response"));
     }
+
+    @Test
+    void testAuthorizationHeaderIsSet() throws Exception {
+        // Mock successful response
+        mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setBody(objectMapper.writeValueAsString(Map.of(
+                "rules", List.of(Map.of(
+                    "id", "rule-1",
+                    "name", "Test Rule",
+                    "description", "Test Description",
+                    "status", "ACTIVE",
+                    "createdAt", "2024-02-26T10:00:00Z",
+                    "updatedAt", "2024-02-26T10:00:00Z"
+                )),
+                "totalCount", 1,
+                "pageSize", 100,
+                "pageNumber", 1
+            ))));
+
+        ListRules task = ListRules.builder()
+            .id(IdUtils.create())
+            .type(ListRules.class.getName())
+            .url(baseUrl)
+            .apiKey("test-api-key")
+            .build();
+
+        RunContext runContext = runContextFactory.of();
+        task.run(runContext);
+
+        // Verify the Authorization header
+        var recordedRequest = mockWebServer.takeRequest();
+        String authHeader = recordedRequest.getHeader("Authorization");
+        assertThat(authHeader, is("Bearer test-api-key"));
+    }
 } 

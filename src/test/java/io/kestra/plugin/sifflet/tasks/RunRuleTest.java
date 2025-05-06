@@ -130,10 +130,12 @@ class RunRuleTest {
             .setResponseCode(200)
             .setBody(objectMapper.writeValueAsString(Map.of("executionId", "test-execution-123"))));
 
-        // Mock running status
-        mockWebServer.enqueue(new MockResponse()
-            .setResponseCode(200)
-            .setBody(objectMapper.writeValueAsString(Map.of("status", "RUNNING"))));
+        // Enqueue multiple RUNNING responses to simulate polling
+        for (int i = 0; i < 3; i++) {
+            mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setBody(objectMapper.writeValueAsString(Map.of("status", "RUNNING"))));
+        }
 
         RunRule task = RunRule.builder()
             .id(IdUtils.create())
@@ -151,8 +153,65 @@ class RunRuleTest {
     }
 
     @Test
-    void testInvalidJsonResponse() {
-        // Mock invalid JSON response
+    void testMetricsRecorded() throws Exception {
+        // Mock successful rule start
+        mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setBody(objectMapper.writeValueAsString(Map.of("executionId", "test-execution-123"))));
+        // Mock successful status check
+        mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setBody(objectMapper.writeValueAsString(Map.of("status", "COMPLETED"))));
+
+        RunRule task = RunRule.builder()
+            .id(IdUtils.create())
+            .type(RunRule.class.getName())
+            .url(baseUrl)
+            .apiKey("test-api-key")
+            .ruleId("test-rule-id")
+            .pollingInterval(1)
+            .timeout(10)
+            .build();
+
+        RunContext runContext = runContextFactory.of();
+        task.run(runContext);
+        // Check that metrics are recorded (example: check for a metric key)
+        assertThat(runContext.metrics().size(), greaterThan(0));
+    }
+
+    @Test
+    void testStatusCheckApiError() throws Exception {
+        // Mock successful rule start
+        mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setBody(objectMapper.writeValueAsString(Map.of("executionId", "test-execution-123"))));
+        // Mock status check API error
+        mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(500)
+            .setBody("Internal Server Error"));
+
+        RunRule task = RunRule.builder()
+            .id(IdUtils.create())
+            .type(RunRule.class.getName())
+            .url(baseUrl)
+            .apiKey("test-api-key")
+            .ruleId("test-rule-id")
+            .pollingInterval(1)
+            .timeout(10)
+            .build();
+
+        RunContext runContext = runContextFactory.of();
+        Exception exception = assertThrows(Exception.class, () -> task.run(runContext));
+        assertThat(exception.getMessage(), containsString("Failed to check rule execution status"));
+    }
+
+    @Test
+    void testInvalidJsonStatusResponse() throws Exception {
+        // Mock successful rule start
+        mockWebServer.enqueue(new MockResponse()
+            .setResponseCode(200)
+            .setBody(objectMapper.writeValueAsString(Map.of("executionId", "test-execution-123"))));
+        // Mock invalid JSON for status check
         mockWebServer.enqueue(new MockResponse()
             .setResponseCode(200)
             .setBody("invalid json"));
