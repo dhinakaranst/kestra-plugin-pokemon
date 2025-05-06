@@ -30,7 +30,7 @@ java {
 }
 
 group = "io.kestra.plugin"
-description = 'Sifflet plugin for Kestra'
+description = 'Plugin template for Kestra'
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
@@ -51,10 +51,6 @@ dependencies {
     annotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
     compileOnly group: "io.kestra", name: "core", version: kestraVersion
     compileOnly group: "io.kestra", name: "script", version: kestraVersion
-
-    // jackson for JSON parsing
-    implementation "com.fasterxml.jackson.core:jackson-databind"
-    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
 }
 
 
@@ -102,9 +98,6 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-engine"
     testImplementation "org.hamcrest:hamcrest"
     testImplementation "org.hamcrest:hamcrest-library"
-    
-    // MockWebServer for testing HTTP calls
-    testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0"
 }
 
 /**********************************************************************************************************************\
@@ -164,9 +157,9 @@ jar {
     manifest {
         attributes(
                 "X-Kestra-Name": project.name,
-                "X-Kestra-Title": "Sifflet",
-                "X-Kestra-Group": project.group + ".sifflet",
-                "X-Kestra-Description": "Sifflet plugin for Kestra",
+                "X-Kestra-Title": "Template",
+                "X-Kestra-Group": project.group + ".templates",
+                "X-Kestra-Description": project.description,
                 "X-Kestra-Version": project.version
         )
     }
