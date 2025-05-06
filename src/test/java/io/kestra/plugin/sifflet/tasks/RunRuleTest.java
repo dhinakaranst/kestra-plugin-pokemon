@@ -60,7 +60,7 @@ class RunRuleTest {
             .apiKey("test-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(10)
+            .ruleTimeout(10)
             .build();
 
         RunContext runContext = runContextFactory.of();
@@ -90,7 +90,7 @@ class RunRuleTest {
             .apiKey("test-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(10)
+            .ruleTimeout(10)
             .build();
 
         RunContext runContext = runContextFactory.of();
@@ -115,7 +115,7 @@ class RunRuleTest {
             .apiKey("invalid-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(10)
+            .ruleTimeout(10)
             .build();
 
         RunContext runContext = runContextFactory.of();
@@ -144,7 +144,7 @@ class RunRuleTest {
             .apiKey("test-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(1) // Set a very short timeout
+            .ruleTimeout(1) // Set a very short timeout
             .build();
 
         RunContext runContext = runContextFactory.of();
@@ -170,7 +170,7 @@ class RunRuleTest {
             .apiKey("test-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(10)
+            .ruleTimeout(10)
             .build();
 
         RunContext runContext = runContextFactory.of();
@@ -197,7 +197,7 @@ class RunRuleTest {
             .apiKey("test-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(10)
+            .ruleTimeout(10)
             .build();
 
         RunContext runContext = runContextFactory.of();
@@ -223,7 +223,7 @@ class RunRuleTest {
             .apiKey("test-api-key")
             .ruleId("test-rule-id")
             .pollingInterval(1)
-            .timeout(10)
+            .ruleTimeout(10)
             .build();
 
         RunContext runContext = runContextFactory.of();
